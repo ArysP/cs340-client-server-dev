@@ -1,25 +1,13 @@
-"""
-Develop a CRUD class that, when instantiated, provides the following functionality:
-
-A method that inserts a document into a specified MongoDB database and collection
-- Input -> argument to function will be set of key/value pairs in the data type acceptable to the MongoDB driver insert API call
-- Return -> “True” if successful insert, else “False”
-
-A method that queries for documents from a specified MongoDB database and specified collection
-- Input -> arguments to function should be the key/value lookup pair to use with the MongoDB driver find API call
-- Return -> result in cursor if successful, else MongoDB returned error message
-
-Important: Be sure to use find() instead of find_one() when developing your method.
-"""
-from collections import OrderedDict
-
-from pymongo import MongoClient
-from bson.objectid import ObjectId
-import os
-import logging
 import csv
+import logging
+import os
+
+from dotenv import load_dotenv
+from pymongo import MongoClient
+
 
 # Environment variables are read in from an .env file
+load_dotenv()
 MONGO_USER = os.getenv("MONGO_USER", "Set the username env variable")
 MONGO_PASS = os.getenv("MONGO_PASS", "Set the password env variable")
 MONGO_HOST = os.getenv("MONGO_HOST", "Set the host env variable")
@@ -78,13 +66,14 @@ class AnimalShelter(object):
         A method that inserts a document into a specified MongoDB database and collection
 
         :param data: set of key/value pairs in the data type acceptable to the MongoDB driver insert API call
-        :return:   “True” if successful insert, else “False”
+        :return: Returns True if successful insert, else False
         """
         try:
             if data is not None:
                 self.database.animals.insert_one(data)  # data should be dictionary
                 return True
-
+            else:
+                raise Exception("Nothing to save, because data parameter is empty")
         except Exception as e:
             self.logger.exception(
                 f"Encountered an exception {e} when trying to save, because data parameter is empty"
@@ -94,20 +83,29 @@ class AnimalShelter(object):
     def read(self, data: dict):
         """
         A method that queries for documents from a specified MongoDB database and specified collection
+
         :param data: the key/value lookup pair to use with the MongoDB driver find API call
         :return: result in cursor if successful, else MongoDB returned error message
         """
-        if data is not None:
-            return self.database.animals.find_one(data)
-            # return self.client
+        try:
+            if data is not None:
+                return self.database.animals.find(data)
+            else:
+                raise Exception("Nothing to read, because data cannot be found")
+        except Exception as e:
+            self.logger.exception(f"Encountered an exception {e} when trying to read the data")
+            return False
 
 
 if __name__ == "__main__":
     aac = AnimalShelter()
-    # print(aac.client.get_database(name="animals"))
-    print(f"Database: {aac.database.name}")
+    print(f"Connected to {aac.database.name} Database.")
 
-    file_path = "data/aac_shelter_outcomes.csv"
+    # Load the shelter outcomes into the MongoDB
+    # file_path = "data/aac_shelter_outcomes.csv"
     # aac.prepare_csv_data(file_path)
-    data = {"breed": "Siamese Mix"}
-    print(aac.read(data))
+
+    # Query the shelter outcomes for a specific breed
+    dictionary_data = {"breed": "Siamese Mix"}
+    siamese_results = aac.read(dictionary_data)
+    print([result for result in siamese_results][0:5])

@@ -1,3 +1,4 @@
 pymongo
 bson
+python-dotenv
 # python -m pip install pymongo[snappy,gssapi,srv,tls]
