@@ -37,23 +37,14 @@ class AnimalShelter(object):
             MONGO_USER, MONGO_PASS, MONGO_HOST, MONGO_DB
         )
         self.client = MongoClient(uri)
-        # self.client = MongoClient(
-        #     host="mongodb+srv://cluster0.wdpb3.mongodb.net/",
-        #     username=username,
-        #     password=password,
-        #     # authSource="admin",
-        #     authMechanism="SCRAM-SHA-256",
-        # )
         self.logger.info("Connected to db")
         self.database = self.client["aac"]
         self.logger.info("Connected to aac.animals")
 
-    def prepare_csv_data(self, file_path):
+    def prepare_csv_data(self, csv_file_path):
         # CSV to JSON Conversion
-        csv_file = open(file_path, "r")
+        csv_file = open(csv_file_path, "r")
         csv_reader = csv.DictReader(csv_file)
-
-        db = aac.database
         header = [
             "1",
             "age_upon_outcome",
@@ -72,24 +63,43 @@ class AnimalShelter(object):
             "location_long",
             "age_upon_outcome_in_weeks",
         ]
-
+        counter = 0
         for row in csv_reader:
             data: dict = {}
             for field in header:
                 data[field] = row[field]
             self.create(data)
-            # self.database.animals.insert_one(data)
-            # self.logger.info("Inserted 1 row")
-            # print(f"Inserted {data}")
+            counter += 1
+            self.logger.info("Inserted 1 row")
+        self.logger.info(f"Inserted {len(counter)} rows.")
 
-    # Complete this create method to implement the C in CRUD.
-    def create(self, data):
+    def create(self, data: dict):
+        """
+        A method that inserts a document into a specified MongoDB database and collection
+
+        :param data: set of key/value pairs in the data type acceptable to the MongoDB driver insert API call
+        :return:   “True” if successful insert, else “False”
+        """
+        try:
+            if data is not None:
+                self.database.animals.insert_one(data)  # data should be dictionary
+                return True
+
+        except Exception as e:
+            self.logger.exception(
+                f"Encountered an exception {e} when trying to save, because data parameter is empty"
+            )
+            return False
+
+    def read(self, data: dict):
+        """
+        A method that queries for documents from a specified MongoDB database and specified collection
+        :param data: the key/value lookup pair to use with the MongoDB driver find API call
+        :return: result in cursor if successful, else MongoDB returned error message
+        """
         if data is not None:
-            self.database.animals.insert_one(data)  # data should be dictionary
-        else:
-            raise Exception("Nothing to save, because data parameter is empty")
-
-    # Create method to implement the R in CRUD.
+            return self.database.animals.find_one(data)
+            # return self.client
 
 
 if __name__ == "__main__":
@@ -98,15 +108,6 @@ if __name__ == "__main__":
     print(f"Database: {aac.database.name}")
 
     file_path = "data/aac_shelter_outcomes.csv"
-    aac.prepare_csv_data(file_path)
-
-    # with open(file_path, "r") as read_obj:
-    #     # pass the file object to reader() to get the reader object
-    #     csv_reader = csv.DictReader(read_obj)
-    #     # Pass reader object to list() to get a list of lists
-    #     mylist = list(csv_reader)
-    #     # print(list_of_rows)
-    #     x = animals.insert_many(mylist)
-    #
-    #     # print list of the _id values of the inserted documents:
-    #     print(x.inserted_ids)
+    # aac.prepare_csv_data(file_path)
+    data = {"breed": "Siamese Mix"}
+    print(aac.read(data))
