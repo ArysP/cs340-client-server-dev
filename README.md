@@ -1,42 +1,70 @@
 # README cs340-client-server-dev
-
-## About the Project
 Repo to store Python and MongoDB code for Client/Server Development
 
-Provide a little information about your project or an overview that explains what the project is about.
+## About the Project
+This module fulfills the following objectives:
+1. a method that inserts a document into a specified MongoDB database (`create`)
+2. a method that queries for documents from a specified MongoDB database and specified collection (`read`)
+3. applies industry standard best practices such as naming conventions, exception handling, and in-line comments
 
 ## Motivation
-This is a short description of the motivation behind the creation and maintenance of the project. This should explain why the project exists.
+The motivation behind the creation and maintenance of the project is to create a Python module that enables create and read functionality on a MongoDB.
 
 ## Getting Started
-To set up your project locally follow the steps oultlined in Installation.
+To set up the project locally, follow the steps outlined in **Installation** and **Environment Variables** section.
 
-## Installation
-- Create a Virtual Environment by navigating to Settings > Projects > Project Interpreter > Clicking the Cog button in the top right > Click "Add" > New venv box checked > Click "OK" > Click "OK"
+### Installation
+- In PyCharm, create a Virtual Environment by navigating to `Settings` > `Projects` > `Project Interpreter` > Clicking the `Cog` icon in the top right > Click "`Add`" > Ensure the new `venv` box is checked > Click "`OK`" > Click "`OK`" again
 - Install the requirements file by typing `pip install -r requirements.txt` in the terminal.
+- Pymongo has some additional dependencies which can be installed with the following command: `python -m pip install pymongo[snappy,gssapi,srv,tls]`
 
 ### Environment Variables
 Create a `.env` file in the root of this repo and fill in the following environment variables.
 
 ```dotenv
-USERNAME='user'
-PASSWORD='pass'
-DATABASE='database_name'
+MONGO_HOST = "cluster"
+MONGO_PORT = "###"
+MONGO_DB = "aac"
+MONGO_USER = "user"
+MONGO_PASS = "pass"
 ```
 
 ## Usage
-Use this space to show useful examples of how your project works and how it can be used. Be sure to include examples of your code, tests, and screenshots.
+To run the code locally, follow the **Getting Started** steps and then run `mongo.py`.
+
 
 ## Code Example
-Show what the library does as concisely as possible. Developers should be able to figure out how your project solves their problem by looking at the code example. Make sure that your code is short and concise.
+Run `mongo.py` to connect to the database, insert, and read a document.
+
+```python
+if __name__ == "__main__":
+    import csv
+    import logging
+    import os
+    from dotenv import load_dotenv
+    from pymongo import MongoClient
+    
+    # Connect to the database
+    aac = AnimalShelter()
+    print(f"Connected to {aac.database.name} Database.")
+
+    # Load the shelter outcomes into the MongoDB
+    file_path = "data/aac_shelter_outcomes.csv"
+    aac.prepare_csv_data(file_path)
+
+    # Query the shelter outcomes for a specific breed
+    dictionary_data = {"breed": "Siamese Mix"}
+    siamese_results = aac.read(dictionary_data)
+    print([result for result in siamese_results][0:5])
+```
 
 ## Tests
 Unit tests have not yet been implemented in this project.
 
 ## Screenshots
-Provide screenshots that demonstrate your work.
+The following screenshot demonstrates how to run the `mongo.py` file.
 
-## Roadmap/Features (Optional)
+![Example](imgs/example_run.png "Example")
 
 ## Contact
 Arys Pena
