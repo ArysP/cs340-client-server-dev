@@ -2,6 +2,7 @@ import csv
 import logging
 import os
 
+from bson import ObjectId
 from dotenv import load_dotenv
 from pymongo import MongoClient
 
@@ -82,7 +83,7 @@ class AnimalShelter(object):
 
     def read(self, data: dict):
         """
-        A method that queries for documents from a specified MongoDB database and specified collection
+        A method that reads and queries for documents from a specified MongoDB database and specified collection
 
         :param data: the key/value lookup pair to use with the MongoDB driver find API call
         :return: result in cursor if successful, else MongoDB returned error message
@@ -94,6 +95,42 @@ class AnimalShelter(object):
                 raise Exception("Nothing to read, because data cannot be found")
         except Exception as e:
             self.logger.exception(f"Encountered an exception {e} when trying to read the data")
+            return False
+
+    def update(self, filter: dict, data: dict):
+        """
+        A method that queries for and changes document(s) from a specified MongoDB database and specified collection
+
+        :param filter: the key/value lookup pair to filter the data
+        :param data: the key/value lookup pair to use with the MongoDB driver find API call
+        :return: result in JSON format if successful, else MongoDB returned error message.
+        """
+        try:
+            if data is not None:
+                self.logger.info(f"Updating id {filter} with new value: {data}")
+                return self.database.animals.update_one(filter, data)
+
+            else:
+                raise Exception("Nothing to update, because data was not provided")
+        except Exception as e:
+            self.logger.exception(f"Encountered an exception {e} when trying to update the data")
+            return False
+
+    def delete(self, data: dict):
+        """
+        A method that queries for and removes document(s) from a specified MongoDB database and specified collection
+
+        :param data: the key/value lookup pair to use with the MongoDB driver find API call
+        :return: result in JSON format if successful, else MongoDB returned error message.
+        """
+        try:
+            if data is not None:
+                print(f"Deleting {data}")
+                return self.database.animals.delete_one(data)
+            else:
+                raise Exception("Nothing to delete, because data was not provided")
+        except Exception as e:
+            self.logger.exception(f"Encountered an exception {e} when trying to delete the data")
             return False
 
 
@@ -109,3 +146,13 @@ if __name__ == "__main__":
     dictionary_data = {"breed": "Siamese Mix"}
     siamese_results = aac.read(dictionary_data)
     print([result for result in siamese_results][0:5])
+
+    # Updating a breed of "Domestic Shorthair Mix" from animal_type of 'Cat' to 'cattt'.
+    breed_filter = {"breed": "Domestic Shorthair Mix"}
+
+    # Values to be updated.
+    new_value = {"$set": {"animal_type": "Cat"}}
+    aac.update(breed_filter, new_value)
+
+    # Delete example
+    aac.delete({"_id": ObjectId("60fb6aaf2015ac73429bc0c2")})
