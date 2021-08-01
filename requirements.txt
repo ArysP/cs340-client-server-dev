@@ -1,3 +1,8 @@
 pymongo
 python-dotenv
+# jupyter-plotly-dash
+dash-core-components
+dash-html-components
+flask
+dash
 # python -m pip install pymongo[snappy,gssapi,srv,tls]
