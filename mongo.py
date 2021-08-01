@@ -83,18 +83,30 @@ class AnimalShelter(object):
 
     def read(self, data: dict):
         """
-        A method that reads and queries for documents from a specified MongoDB database and specified collection
+        A method that reads and queries for documents from a specified MongoDB database and collection
 
         :param data: the key/value lookup pair to use with the MongoDB driver find API call
         :return: result in cursor if successful, else MongoDB returned error message
         """
         try:
             if data is not None:
-                return self.database.animals.find(data)
+                return self.database.animals.find(data, {"_id": False})
             else:
                 raise Exception("Nothing to read, because data cannot be found")
         except Exception as e:
             self.logger.exception(f"Encountered an exception {e} when trying to read the data")
+            return False
+
+    def read_all(self):
+        """
+        A method that reads all documents from a specified MongoDB database and collection
+
+        :return: result in cursor if successful, else MongoDB returned error message
+        """
+        try:
+            return self.database.animals.find({}, {"_id": False}).limit(10)
+        except Exception as e:
+            self.logger.exception(f"Encountered an exception {e} when trying to read all the data")
             return False
 
     def update(self, filter: dict, data: dict):
