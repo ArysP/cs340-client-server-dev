@@ -106,7 +106,7 @@ class AnimalShelter(object):
         :return: result in cursor if successful, else MongoDB returned error message
         """
         try:
-            return self.database.animals.find({}, {"_id": False}).limit(10)
+            return self.database.animals.find({}, {"_id": False}).limit(40)
         except Exception as e:
             self.logger.exception(f"Encountered an exception {e} when trying to read all the data")
             return False
@@ -126,11 +126,13 @@ class AnimalShelter(object):
         try:
             return self.database.animals.find(
                 {
-                    "breed": {"$regex": "German Shepherd"},
-                    "breed": {"$regex": "Alaskan Malamute"},
-                    "breed": {"$regex": "Old English Sheepdog"},
-                    "breed": {"$regex": "Siberian Husky"},
-                    "breed": {"$regex": "Rottweiler"},
+                    "$or": [
+                        {"breed": "German Shepherd"},
+                        {"breed": "Alaskan Malamute"},
+                        {"breed": "Old English Sheepdog"},
+                        {"breed": "Siberian Husky"},
+                        {"breed": "Rottweiler"},
+                    ],
                     "sex_upon_outcome": "Intact Male",
                     "age_upon_outcome_in_weeks": {"$gt": "26"},
                     "age_upon_outcome_in_weeks": {"$lt": "156"},
@@ -148,7 +150,7 @@ class AnimalShelter(object):
         A method that filters documents for Water Rescue dogs with the following criteria:
 
         Water Rescue
-            "breed": 'Labrador Retriever Mix','Chesapeake Bay Retriever','Newfoundland'
+            "breed": 'Labrador Retriever Mix', 'Chesapeake Bay Retriever', 'Newfoundland'
             "sex_upon_outcome": "Intact Female"
             "age_upon_outcome_in_weeks": gt> 26
             "age_upon_outcome_in_weeks": lt> 156
@@ -158,9 +160,11 @@ class AnimalShelter(object):
         try:
             return self.database.animals.find(
                 {
-                    "breed": {"$regex": "Labrador Retriever Mix"},
-                    "breed": {"$regex": "Chesapeake Bay Retriever"},
-                    "breed": {"$regex": "Newfoundland"},
+                    "$or": [
+                        {"breed": "Labrador Retriever Mix"},
+                        {"breed": "Chesapeake Bay Retriever"},
+                        {"breed": "Newfoundland"},
+                    ],
                     "sex_upon_outcome": "Intact Female",
                     "age_upon_outcome_in_weeks": {"$gt": "26"},
                     "age_upon_outcome_in_weeks": {"$lt": "156"},
@@ -188,11 +192,13 @@ class AnimalShelter(object):
         try:
             return self.database.animals.find(
                 {
-                    "breed": {"$regex": "Doberman Pinscher"},
-                    "breed": {"$regex": "German Shepherd"},
-                    "breed": {"$regex": "Golden Retriever"},
-                    "breed": {"$regex": "Bloodhound"},
-                    "breed": {"$regex": "Rottweiler"},
+                    "$or": [
+                        {"breed": "Doberman Pinscher"},
+                        {"breed": "German Shepherd"},
+                        {"breed": "Golden Retriever"},
+                        {"breed": "Bloodhound"},
+                        {"breed": "Rottweiler"},
+                    ],
                     "sex_upon_outcome": "Intact Male",
                     "age_upon_outcome_in_weeks": {"$gt": "26"},
                     "age_upon_outcome_in_weeks": {"$lt": "300"},

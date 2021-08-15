@@ -6,6 +6,7 @@ import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_leaflet as dl
+import plotly.express as px
 import dash_table
 import pandas as pd
 from dash.dependencies import Input, Output
@@ -31,7 +32,7 @@ app = dash.Dash(
 username = "accuser"
 password = "aacuserpass"
 aac = AnimalShelter(username, password)
-logger.info(f"Connected to {aac.database.name} Database")  # for {username}.")
+logger.info(f"Connected to {aac.database.name} Database")
 
 # Add in Grazioso Salvare’s logo
 image_filename = "data/GraziosoSalvareLogo.png"  # replace with your own image
@@ -46,17 +47,7 @@ df = pd.DataFrame.from_records(query)
 
 # Declare the application interfaces
 app.layout = html.Div(
-    # Application has two input boxes, a submit button, a horizontal line and div for output
     [
-        dcc.Input(
-            id="input_user".format("text"), type="text", placeholder="input type {}".format("text")
-        ),
-        dcc.Input(
-            id="input_passwd".format("password"),
-            type="password",
-            placeholder="input type {}".format("password"),
-        ),
-        html.Button("Execute", id="submit_val", n_clicks=0),
         html.Hr(),
         html.Div(id="query_out"),
         html.Div(id="hidden_div", style={"display": "none"}),
@@ -100,38 +91,59 @@ app.layout = html.Div(
                     className="col-6",
                 ),
             ],
-            style={
-                "height": "auto",
-                "width": "auto",
-                "backgroundColor": "#0067b9",
-                # "align-items": "center",
-            },
+            style={"height": "auto", "width": "auto", "backgroundColor": "#0067b9",},
         ),
         html.Hr(),
-        dcc.RadioItems(
-            id="radio_items_id",
-            options=[
-                {"label": "Water Rescue", "value": "WR"},
-                {"label": "Mountain Rescue", "value": "MR"},
-                {"label": "Disaster Rescue", "value": "DR"},
-                {"label": "Reset", "value": "R"},
-            ],
-            value="R",
-            labelStyle={"display": "inline-block"},
+        html.Div(
+            [
+                html.B("Step 1: "),
+                "Select a rescue type from the options below:",
+                html.Br(),
+                dcc.RadioItems(
+                    id="radio_items_id",
+                    options=[
+                        {"label": "Water Rescue", "value": "WR"},
+                        {"label": "Mountain Rescue", "value": "MR"},
+                        {"label": "Disaster Rescue", "value": "DR"},
+                        {"label": "Reset", "value": "R"},
+                    ],
+                    # value="R",
+                    labelStyle={"display": "inline-block"},
+                ),
+                html.Br(),
+                html.B("Step 2: "),
+                "Click on the circle on the left of the row within the table to filter the plots below. Clicking on a row highlights the dog's name in the bar chart.",
+                html.Br(),
+            ]
         ),
-        dash_table.DataTable(
-            id="datatable_id",
-            columns=[
-                {"name": i, "id": i, "deletable": False, "selectable": True} for i in df.columns
-            ],
-            # data=df.to_dict("records"),
-            editable=False,
-            filter_action="native",
-            # FIXME: Set up the features for your interactive data table to make it user-friendly for your client
+        html.Div(
+            [
+                dash_table.DataTable(
+                    id="datatable_id",
+                    columns=[
+                        {"name": i, "id": i, "deletable": False, "selectable": True}
+                        for i in df.columns
+                    ],
+                    editable=False,
+                    filter_action="native",
+                    row_selectable="single",
+                    selected_columns=[],
+                ),
+                html.Br(),
+                html.B("Step 3: "),
+                "Click 'Reset' to display all results (limited to 40 for performance).",
+            ]
         ),
         html.Br(),
         html.Hr(),
-        html.Div(id="map_id", className="col s12 m6",),
+        html.Div(
+            dbc.Row(
+                [
+                    dbc.Col(html.Div(id="datatable_id_container"), width=6),
+                    dbc.Col(html.Div(id="map_id"), width=6),
+                ],
+            ),
+        ),
     ]
 )
 
@@ -147,6 +159,42 @@ def update_styles(selected_columns):
     return [{"if": {"column_id": i}, "background_color": "#D2F3FF"} for i in selected_columns]
 
 
+@app.callback(
+    Output("datatable_id_container", "children"),
+    [
+        Input("datatable_id", "derived_virtual_data"),
+        Input("datatable_id", "derived_virtual_selected_rows"),
+    ],
+)
+def update_graphs(derived_virtual_data, derived_virtual_selected_rows):
+    if derived_virtual_selected_rows is None:
+        derived_virtual_selected_rows = []
+
+    dff = df if derived_virtual_data is None else pd.DataFrame(derived_virtual_data)
+
+    colors = [
+        "#7FDBFF" if i in derived_virtual_selected_rows else "#0074D9" for i in range(len(dff))
+    ]
+
+    return [
+        dcc.Graph(
+            id=column,
+            figure={
+                "data": [{"x": dff["name"], "type": "bar", "marker": {"color": colors},}],
+                "layout": {
+                    "xaxis": {"automargin": True},
+                    "yaxis": {"automargin": True, "title": {"text": column}},
+                    "height": 250,
+                    "margin": {"t": 10, "l": 10, "r": 10},
+                },
+            },
+        )
+        # check if column exists
+        for column in ["age_upon_outcome_in_weeks"]
+        if column in dff
+    ]
+
+
 @app.callback(Output("datatable_id", "data"), [Input("radio_items_id", "value")])
 def update_datatable(value):
     if value == "R":
@@ -155,83 +203,56 @@ def update_datatable(value):
         return df
     if value == "WR":
         df = pd.DataFrame.from_records(aac.filter_water_rescue())
-        print(f"Filtered to Water Rescue {df.head(5)}")
+        print(f"Filtered to Water Rescue \n {df.head(5)}")
         return df.to_dict("records")
     if value == "MR":
         df = pd.DataFrame.from_records(aac.filter_mountain_wilderness())
-        print(f"Filtered to Mountain Rescue {df.head(5)}")
+        print(f"Filtered to Mountain  \n {df.head(5)}")
         return df.to_dict("records")
     if value == "DR":
         df = pd.DataFrame.from_records(aac.filter_disaster_rescue_tracking())
-        print(f"Filtered to Diasater Rescue {df.head(5)}")
+        print(f"Filtered to Disaster Rescue \n {df.head(5)}")
         return df.to_dict("records")
 
 
 @app.callback(
     Output("map_id", "children"),
-    [Input("radio_items_id", "value"), Input("datatable_id", "derived_viewport_data")],
+    [
+        Input("datatable_id", "derived_virtual_data"),
+        Input("datatable_id", "derived_virtual_selected_rows"),
+    ],
 )
-def update_map(value, view_data):
-    if value == "R":
-        dff = pd.DataFrame.from_dict(view_data)
-        return []
-    dff = pd.DataFrame.from_dict(view_data)
+def update_map(derived_virtual_data, selected_row_index):
+    dff = df if selected_row_index is None else pd.DataFrame(derived_virtual_data)
+    if selected_row_index is None or selected_row_index is None or len(selected_row_index) == 0:
+        raise PreventUpdate
+
     return [
         dl.Map(
             style={"width": "1000px", "height": "500px"},
-            center=[30.75, -97.48],
+            center=[
+                float(dff.iloc[selected_row_index, 13].values[0]),
+                float(dff.iloc[selected_row_index, 14].values[0]),
+            ],  # [30.75, -97.48],
             zoom=10,
             children=[
-                dl.TileLayer(id="base-layer-id"),
+                dl.TileLayer(id=f"base_layer_id"),  # _{index}
                 # Marker with tool tip and popup
                 dl.Marker(
-                    position=[30.75, -97.48],
+                    position=[
+                        float(dff.iloc[selected_row_index, 13].values[0]),
+                        float(dff.iloc[selected_row_index, 14].values[0]),
+                    ],
                     children=[
-                        dl.Tooltip(dff.iloc[0, 4]),
-                        dl.Popup([html.H1("Animal Name"), html.P(dff.iloc[1, 9])]),
+                        dl.Tooltip(dff.iloc[selected_row_index, 4]),  # dff.iloc[0, 4]),
+                        dl.Popup(
+                            [html.H2("Animal Name"), html.P(dff.iloc[selected_row_index, 9])]
+                        ),  # dff.iloc[1, 9])]),
                     ],
                 ),
             ],
         )
     ]
-
-
-# Define application responses/callback routines
-# @app.callback(
-#     Output("query_out", "children"),
-#     [
-#         Input("input_user".format("text"), "value"),
-#         Input("input_passwd".format("password"), "value"),
-#         Input("submit_val", "n_clicks"),
-#     ],
-#     [dash.dependencies.State("input_passwd", "value")],
-# )
-# def cb_render(user_value, pass_value, n_clicks, button_value) -> str:
-#     """
-#     Take the entered text and if the submit button is clicked then call the mongo database
-#     with the find_one query and return the result to the output div.
-#
-#     :param user_value: Username string
-#     :param pass_value: Password string
-#     :param n_clicks: If submit button is clicked
-#     :param button_value: not used.
-#     :return: Output div populated with database results
-#     """
-#     if n_clicks > 0:
-#         # Data Manipulation / Model use CRUD module to access MongoDB
-#         username = urllib.parse.quote_plus(user_value)
-#         password = urllib.parse.quote_plus(pass_value)
-#
-#         # Instantiate CRUD object with above authentication username and password values
-#         aac = AnimalShelter()
-#         logger.info(f"Connected to {aac.database.name} Database for {username}.")
-#
-#         # MongoDB returns BSON, the pyMongo JSON utility function dumps is used to convert to text
-#         # Return example query results
-#         dictionary_data = {"animal_type": "Dog", "name": "Lucy"}
-#         results = aac.read(dictionary_data)
-#         json_str = dumps(list(results))
-#         return json_str
 
 
 if __name__ == "__main__":
