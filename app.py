@@ -1,22 +1,16 @@
 import base64
-import json
 import logging
-import urllib.parse
-import dash
-import dash_leaflet as dl
-import plotly.express as px
-import pandas as pd
-import dash_table
-import dash
-import dash_core_components as dcc
-import dash_bootstrap_components as dbc
-import dash_html_components as html
-from bson import json_util
 
-from bson.json_util import dumps
+import dash
+import dash_bootstrap_components as dbc
+import dash_core_components as dcc
+import dash_html_components as html
+import dash_leaflet as dl
+import dash_table
+import pandas as pd
 from dash.dependencies import Input, Output
+from dash.exceptions import PreventUpdate
 from flask import Flask
-from pandas.io.json import json_normalize
 
 from mongo import AnimalShelter
 
@@ -26,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 app = dash.Dash(
     __name__,
-    url_base_pathname="/module-five/",
+    url_base_pathname="/animal-shelter/",
     server=server,
     suppress_callback_exceptions=True,
     prevent_initial_callbacks=True,
@@ -46,10 +40,9 @@ encoded_image_logo = base64.b64encode(open(image_filename, "rb").read())
 image_filename = "data/australian_shepherd.jpg"  # replace with your own image
 encoded_image_dog = base64.b64encode(open(image_filename, "rb").read())
 
-# query = aac.read({"animal_type": "Dog", "name": "Lucy"})
+
 query = aac.read_all()
 df = pd.DataFrame.from_records(query)
-print(df.head(5))
 
 # Declare the application interfaces
 app.layout = html.Div(
@@ -68,7 +61,7 @@ app.layout = html.Div(
         html.Div(id="query_out"),
         html.Div(id="hidden_div", style={"display": "none"}),
         # Use row and col to control vertical alignment of logo / brand
-        dbc.Row(
+        html.Div(
             [
                 dbc.Col(
                     [
@@ -78,54 +71,60 @@ app.layout = html.Div(
                                     src="data:image/png;base64,{}".format(
                                         encoded_image_logo.decode()
                                     ),
-                                    style={"height": "2" "00px"}
-                                    #  'height': '4%',
-                                    #  'width': '4%',
-                                    # 'float': 'right',
-                                    # 'position': 'relative',
-                                    # 'padding-top': 0,
-                                    # 'padding-right': 0
+                                    style={"height": "2" "00px"},
                                 )
                             ],
                             href="https://www.snhu.edu",
                         ),
-                        dbc.Row(html.B(html.H1("SNHU CS-340 Dashboard")),),
-                    ]
-                ),
-                dbc.Col(
-                    [
-                        html.A(
-                            [
-                                html.Img(
-                                    src="data:image/png;base64,{}".format(
-                                        encoded_image_dog.decode()
-                                    ),
-                                    style={"height": "2" "00px"},
-                                ),
-                            ],
-                            href="https://www.snhu.edu",
+                        html.Img(
+                            src="data:image/png;base64,{}".format(encoded_image_dog.decode()),
+                            style={"height": "2" "00px"},
+                            className="align-right",
                         ),
                         html.H4(
                             children="Created by Arys Pena",
-                            style={"text-align": "left", "color": "white"},
+                            style={"textAlign": "right", "color": "white"},
                         ),
-                    ]
+                        html.B(
+                            html.Center(
+                                [
+                                    html.H1(
+                                        "Grazioso Salvare Animal Shelter Web Application Dashboard"
+                                    ),
+                                    html.H3("Web Application Dashboard"),
+                                ]
+                            ),
+                            style={"color": "white"},
+                        ),
+                    ],
+                    className="col-6",
                 ),
             ],
             style={
                 "height": "auto",
                 "width": "auto",
-                "background-color": "#0067b9",
-                "align-items": "center",
+                "backgroundColor": "#0067b9",
+                # "align-items": "center",
             },
         ),
         html.Hr(),
+        dcc.RadioItems(
+            id="radio_items_id",
+            options=[
+                {"label": "Water Rescue", "value": "WR"},
+                {"label": "Mountain Rescue", "value": "MR"},
+                {"label": "Disaster Rescue", "value": "DR"},
+                {"label": "Reset", "value": "R"},
+            ],
+            value="R",
+            labelStyle={"display": "inline-block"},
+        ),
         dash_table.DataTable(
             id="datatable_id",
             columns=[
                 {"name": i, "id": i, "deletable": False, "selectable": True} for i in df.columns
             ],
-            data=df.to_dict("records"),
+            # data=df.to_dict("records"),
             editable=False,
             filter_action="native",
             # FIXME: Set up the features for your interactive data table to make it user-friendly for your client
@@ -135,6 +134,66 @@ app.layout = html.Div(
         html.Div(id="map_id", className="col s12 m6",),
     ]
 )
+
+
+#############################################
+# Interaction Between Components / Controller
+#############################################
+# This callback will highlight a row on the data table when the user selects it
+@app.callback(
+    Output("datatable_id", "style_data_conditional"), [Input("datatable_id", "selected_columns")]
+)
+def update_styles(selected_columns):
+    return [{"if": {"column_id": i}, "background_color": "#D2F3FF"} for i in selected_columns]
+
+
+@app.callback(Output("datatable_id", "data"), [Input("radio_items_id", "value")])
+def update_datatable(value):
+    if value == "R":
+        df = pd.DataFrame.from_records(aac.read_all()).to_dict("records")
+        print("Reset button pressed")
+        return df
+    if value == "WR":
+        df = pd.DataFrame.from_records(aac.filter_water_rescue())
+        print(f"Filtered to Water Rescue {df.head(5)}")
+        return df.to_dict("records")
+    if value == "MR":
+        df = pd.DataFrame.from_records(aac.filter_mountain_wilderness())
+        print(f"Filtered to Mountain Rescue {df.head(5)}")
+        return df.to_dict("records")
+    if value == "DR":
+        df = pd.DataFrame.from_records(aac.filter_disaster_rescue_tracking())
+        print(f"Filtered to Diasater Rescue {df.head(5)}")
+        return df.to_dict("records")
+
+
+@app.callback(
+    Output("map_id", "children"),
+    [Input("radio_items_id", "value"), Input("datatable_id", "derived_viewport_data")],
+)
+def update_map(value, view_data):
+    if value == "R":
+        dff = pd.DataFrame.from_dict(view_data)
+        return []
+    dff = pd.DataFrame.from_dict(view_data)
+    return [
+        dl.Map(
+            style={"width": "1000px", "height": "500px"},
+            center=[30.75, -97.48],
+            zoom=10,
+            children=[
+                dl.TileLayer(id="base-layer-id"),
+                # Marker with tool tip and popup
+                dl.Marker(
+                    position=[30.75, -97.48],
+                    children=[
+                        dl.Tooltip(dff.iloc[0, 4]),
+                        dl.Popup([html.H1("Animal Name"), html.P(dff.iloc[1, 9])]),
+                    ],
+                ),
+            ],
+        )
+    ]
 
 
 # Define application responses/callback routines
@@ -173,42 +232,6 @@ app.layout = html.Div(
 #         results = aac.read(dictionary_data)
 #         json_str = dumps(list(results))
 #         return json_str
-
-
-#############################################
-# Interaction Between Components / Controller
-#############################################
-# This callback will highlight a row on the data table when the user selects it
-@app.callback(
-    Output("datatable-id", "style_data_conditional"), [Input("datatable-id", "selected_columns")]
-)
-def update_styles(selected_columns):
-    return [{"if": {"column_id": i}, "background_color": "#D2F3FF"} for i in selected_columns]
-
-
-@app.callback(Output("map_id", "children"), [Input("datatable_id", "derived_viewport_data")])
-def update_map(view_data):
-    dff = pd.DataFrame.from_dict(view_data)
-    # Austin TX is at [30.75,-97.48]
-    # code for geolocation chart
-    return [
-        dl.Map(
-            style={"width": "1000px", "height": "500px"},
-            center=[30.75, -97.48],
-            zoom=10,
-            children=[
-                dl.TileLayer(id="base-layer-id"),
-                # Marker with tool tip and popup
-                dl.Marker(
-                    position=[30.75, -97.48],
-                    children=[
-                        dl.Tooltip(dff.iloc[0, 4]),
-                        dl.Popup([html.H1("Animal Name"), html.P(dff.iloc[1, 9])]),
-                    ],
-                ),
-            ],
-        )
-    ]
 
 
 if __name__ == "__main__":
