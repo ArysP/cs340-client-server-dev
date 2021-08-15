@@ -18,8 +18,10 @@ MONGO_DB = os.getenv("MONGO_DB", "Set the db env variable")
 class AnimalShelter(object):
     """ CRUD operations for Animal collection in MongoDB """
 
-    def __init__(self):
+    def __init__(self, username, password):
         self.logger = logging.getLogger(__name__)
+        self.username = username
+        self.password = password
 
         # Initialize the MongoClient to access the MongoDB databases and collections.
         uri = "mongodb+srv://{}:{}@{}/{}?authSource=admin".format(
@@ -109,6 +111,100 @@ class AnimalShelter(object):
             self.logger.exception(f"Encountered an exception {e} when trying to read all the data")
             return False
 
+    def filter_mountain_wilderness(self):
+        """
+        A method that filters documents for Mountain or Wilderness Rescue dogs with the following criteria:
+
+        Mountain or Wilderness Rescue
+            "breed":  "German Shepherd", "Alaskan Malamute", "Old English Sheepdog", "Siberian Husky", "Rottweiler"
+            "sex_upon_outcome": "Intact Male"
+            "age_upon_outcome_in_weeks": gt> 26
+            "age_upon_outcome_in_weeks": lt> 156
+
+        :return: result in cursor if successful, else MongoDB returned error message
+        """
+        try:
+            return self.database.animals.find(
+                {
+                    "breed": {"$regex": "German Shepherd"},
+                    "breed": {"$regex": "Alaskan Malamute"},
+                    "breed": {"$regex": "Old English Sheepdog"},
+                    "breed": {"$regex": "Siberian Husky"},
+                    "breed": {"$regex": "Rottweiler"},
+                    "sex_upon_outcome": "Intact Male",
+                    "age_upon_outcome_in_weeks": {"$gt": "26"},
+                    "age_upon_outcome_in_weeks": {"$lt": "156"},
+                },
+                {"_id": False},
+            )
+        except Exception as e:
+            self.logger.exception(
+                f"Encountered an exception {e} when trying to filter to  Mountain or Wilderness Rescue data"
+            )
+            return False
+
+    def filter_water_rescue(self):
+        """
+        A method that filters documents for Water Rescue dogs with the following criteria:
+
+        Water Rescue
+            "breed": 'Labrador Retriever Mix','Chesapeake Bay Retriever','Newfoundland'
+            "sex_upon_outcome": "Intact Female"
+            "age_upon_outcome_in_weeks": gt> 26
+            "age_upon_outcome_in_weeks": lt> 156
+
+        :return: result in cursor if successful, else MongoDB returned error message
+        """
+        try:
+            return self.database.animals.find(
+                {
+                    "breed": {"$regex": "Labrador Retriever Mix"},
+                    "breed": {"$regex": "Chesapeake Bay Retriever"},
+                    "breed": {"$regex": "Newfoundland"},
+                    "sex_upon_outcome": "Intact Female",
+                    "age_upon_outcome_in_weeks": {"$gt": "26"},
+                    "age_upon_outcome_in_weeks": {"$lt": "156"},
+                },
+                {"_id": False},
+            )
+        except Exception as e:
+            self.logger.exception(
+                f"Encountered an exception {e} when trying to filter to  Mountain or Wilderness Rescue data"
+            )
+            return False
+
+    def filter_disaster_rescue_tracking(self):
+        """
+        A method that filters documents for Water Rescue dogs with the following criteria:
+
+        Disaster Rescue or Individual Tracking
+            "breed":  "Doberman Pinscher", "German Shepherd", "Golden Retriever", "Bloodhound", "Rottweiler"
+            "sex_upon_outcome": "Intact Male"
+            "age_upon_outcome_in_weeks": gt> 26
+            "age_upon_outcome_in_weeks": lt> 300
+
+        :return: result in cursor if successful, else MongoDB returned error message
+        """
+        try:
+            return self.database.animals.find(
+                {
+                    "breed": {"$regex": "Doberman Pinscher"},
+                    "breed": {"$regex": "German Shepherd"},
+                    "breed": {"$regex": "Golden Retriever"},
+                    "breed": {"$regex": "Bloodhound"},
+                    "breed": {"$regex": "Rottweiler"},
+                    "sex_upon_outcome": "Intact Male",
+                    "age_upon_outcome_in_weeks": {"$gt": "26"},
+                    "age_upon_outcome_in_weeks": {"$lt": "300"},
+                },
+                {"_id": False},
+            )
+        except Exception as e:
+            self.logger.exception(
+                f"Encountered an exception {e} when trying to filter to  Mountain or Wilderness Rescue data"
+            )
+            return False
+
     def update(self, filter: dict, data: dict):
         """
         A method that queries for and changes document(s) from a specified MongoDB database and specified collection
@@ -147,7 +243,7 @@ class AnimalShelter(object):
 
 
 if __name__ == "__main__":
-    aac = AnimalShelter()
+    aac = AnimalShelter("aac", "pass")
     print(f"Connected to {aac.database.name} Database.")
 
     # Load the shelter outcomes into the MongoDB
@@ -155,16 +251,23 @@ if __name__ == "__main__":
     # aac.prepare_csv_data(file_path)
 
     # Query the shelter outcomes for a specific breed
-    dictionary_data = {"breed": "Siamese Mix"}
-    siamese_results = aac.read(dictionary_data)
-    print([result for result in siamese_results][0:5])
+    # dictionary_data = {"breed": "Siamese Mix"}
+    # siamese_results = aac.read(dictionary_data)
+    # print([result for result in siamese_results][0:5])
+    #
+    # # Updating a breed of "Domestic Shorthair Mix" from animal_type of 'Cat' to 'cattt'.
+    # breed_filter = {"breed": "Domestic Shorthair Mix"}
+    #
+    # # Values to be updated.
+    # new_value = {"$set": {"animal_type": "Cat"}}
+    # aac.update(breed_filter, new_value)
+    #
+    # # Delete example
+    # aac.delete({"_id": ObjectId("60fb6aaf2015ac73429bc0c2")})
+    results = [r for r in aac.filter_disaster_rescue_tracking()]
+    print(f"Number of results: {len(results)}")
+    print(results)
 
-    # Updating a breed of "Domestic Shorthair Mix" from animal_type of 'Cat' to 'cattt'.
-    breed_filter = {"breed": "Domestic Shorthair Mix"}
-
-    # Values to be updated.
-    new_value = {"$set": {"animal_type": "Cat"}}
-    aac.update(breed_filter, new_value)
-
-    # Delete example
-    aac.delete({"_id": ObjectId("60fb6aaf2015ac73429bc0c2")})
+    """
+    Reset (returns all widgets to their original, unfiltered state)
+    """
