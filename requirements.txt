@@ -2,6 +2,7 @@ pymongo
 python-dotenv
 dash
 flask
+dash-bootstrap-components
 dash-core-components
 dash-html-components
 dash-leaflet
