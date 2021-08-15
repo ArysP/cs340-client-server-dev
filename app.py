@@ -1,15 +1,15 @@
+import base64
 import json
 import logging
 import urllib.parse
 import dash
 import dash_leaflet as dl
-import dash_core_components as dcc
-import dash_html_components as html
 import plotly.express as px
 import pandas as pd
 import dash_table
 import dash
 import dash_core_components as dcc
+import dash_bootstrap_components as dbc
 import dash_html_components as html
 from bson import json_util
 
@@ -33,9 +33,18 @@ app = dash.Dash(
 )
 
 
-# class read method must support return of cursor object and accept projection json input
-aac = AnimalShelter()
+# username and password and CRUD Python module name
+username = "accuser"
+password = "aacuserpass"
+aac = AnimalShelter(username, password)
 logger.info(f"Connected to {aac.database.name} Database")  # for {username}.")
+
+# Add in Grazioso Salvare’s logo
+image_filename = "data/GraziosoSalvareLogo.png"  # replace with your own image
+encoded_image_logo = base64.b64encode(open(image_filename, "rb").read())
+
+image_filename = "data/australian_shepherd.jpg"  # replace with your own image
+encoded_image_dog = base64.b64encode(open(image_filename, "rb").read())
 
 # query = aac.read({"animal_type": "Dog", "name": "Lucy"})
 query = aac.read_all()
@@ -58,7 +67,58 @@ app.layout = html.Div(
         html.Hr(),
         html.Div(id="query_out"),
         html.Div(id="hidden_div", style={"display": "none"}),
-        html.Center(html.B(html.H1("Arys Pena SNHU CS-340 Dashboard Module 6"))),
+        # Use row and col to control vertical alignment of logo / brand
+        dbc.Row(
+            [
+                dbc.Col(
+                    [
+                        html.A(
+                            [
+                                html.Img(
+                                    src="data:image/png;base64,{}".format(
+                                        encoded_image_logo.decode()
+                                    ),
+                                    style={"height": "2" "00px"}
+                                    #  'height': '4%',
+                                    #  'width': '4%',
+                                    # 'float': 'right',
+                                    # 'position': 'relative',
+                                    # 'padding-top': 0,
+                                    # 'padding-right': 0
+                                )
+                            ],
+                            href="https://www.snhu.edu",
+                        ),
+                        dbc.Row(html.B(html.H1("SNHU CS-340 Dashboard")),),
+                    ]
+                ),
+                dbc.Col(
+                    [
+                        html.A(
+                            [
+                                html.Img(
+                                    src="data:image/png;base64,{}".format(
+                                        encoded_image_dog.decode()
+                                    ),
+                                    style={"height": "2" "00px"},
+                                ),
+                            ],
+                            href="https://www.snhu.edu",
+                        ),
+                        html.H4(
+                            children="Created by Arys Pena",
+                            style={"text-align": "left", "color": "white"},
+                        ),
+                    ]
+                ),
+            ],
+            style={
+                "height": "auto",
+                "width": "auto",
+                "background-color": "#0067b9",
+                "align-items": "center",
+            },
+        ),
         html.Hr(),
         dash_table.DataTable(
             id="datatable_id",
